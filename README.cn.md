@@ -50,15 +50,25 @@ import "github.com/xingliuhua/leaf"
 ```
 
 ``` go
-    startTime := time.Date(2020, 0, 0, 0, 0, 0, 0, time.UTC).UnixNano() / 1000000
-	err, node := leaf.NewNode(0)
-	// node.SetGenerateIDRate(200)
-	node.SetSince(startTime)
+    err, node := leaf.NewNode(0)
 	if err != nil {
 		return
 	}
-	for i := 0; i < 15; i++ {
-		fmt.Println(node.NextId())
+	err = node.SetGenerateIDRate(200)
+	if err != nil {
+		return
+	}
+	startTime := time.Date(2020, 0, 0, 0, 0, 0, 0, time.UTC).UnixNano() / 1000000
+	err = node.SetSince(startTime)
+	if err != nil {
+		return
+	}
+	for i := 0; i < 40; i++ {
+		err, id := node.NextId()
+		if err != nil {
+			return
+		}
+		fmt.Println(id)
 	}
 ```
 
