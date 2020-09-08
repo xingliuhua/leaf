@@ -2,7 +2,6 @@ package leaf
 
 import (
 	"fmt"
-	"math"
 	"testing"
 	"time"
 )
@@ -15,7 +14,7 @@ func TestIdNode_NextId(t *testing.T) {
 	}
 	err = node.SetSince(time.Now().UnixNano()/1000000 + 1)
 	if err != nil {
-		fmt.Println("errr", err)
+		fmt.Println("err", err)
 		return
 	}
 	err = node.SetGenerateIDRate(46656)
@@ -26,9 +25,4 @@ func TestIdNode_NextId(t *testing.T) {
 	for i := 0; i < 40; i++ {
 		fmt.Println(node.NextId())
 	}
-}
-func TestN(t *testing.T) {
-	fmt.Println(math.Pow(36, 8))
-	hex := numToBHex(2.821109907456e+12-1, 36)
-	fmt.Println(hex)
 }

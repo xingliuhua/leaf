@@ -82,7 +82,7 @@ func (i *IdNode) NextId() (error, string) {
 
 	timestamp := genTime() - i.since
 	if timestamp < 0 {
-		err := errors.New("since time is invalid2")
+		err := errors.New("since time is invalid")
 		return err, ""
 	}
 	if timestamp < i.lastTimestamp {
