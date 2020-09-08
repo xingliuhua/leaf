@@ -10,9 +10,11 @@ import (
 	"time"
 )
 
-const MAX_NODE_ID int64 = 35
-const DEFAULT_MAX_NODE_SEQUENCE int64 = 35
-const INT_BASE int64 = 36
+const (
+	MAX_NODE_ID               int64 = 35
+	DEFAULT_MAX_NODE_SEQUENCE int64 = 35
+	INT_BASE                  int64 = 36
+)
 
 const CHARS = "0123456789abcdefghijklmnopqrstuvwxyz"
 
@@ -52,7 +54,8 @@ func NewNode(nodeId int64) (error, *IdNode) {
 
 // SetSince set start time,Number of milliseconds from 1970-00-00 00:00:00 to start time
 func (i *IdNode) SetSince(sinceMilliseconds int64) error {
-	if sinceMilliseconds < 0 {
+	i2 := genTime()
+	if sinceMilliseconds < 0 || sinceMilliseconds > i2 {
 		return errors.New("since time is invalid")
 	}
 	i.since = sinceMilliseconds
@@ -60,12 +63,12 @@ func (i *IdNode) SetSince(sinceMilliseconds int64) error {
 }
 
 // SetGenerateIDRate
-func (i *IdNode) SetGenerateIDRate(idCountMaxPeMillisecond int64) error {
-	if idCountMaxPeMillisecond <= 0 {
+func (i *IdNode) SetGenerateIDRate(idCountMaxPerMillisecond int64) error {
+	if idCountMaxPerMillisecond <= 0 {
 		return errors.New("sequenceMax time is invalid")
 	}
-	i.sequenceMax = idCountMaxPeMillisecond
-	i.sequenceMaxBit = getSequenceMaxBit(idCountMaxPeMillisecond)
+	i.sequenceMax = idCountMaxPerMillisecond
+	i.sequenceMaxBit = getSequenceMaxBit(idCountMaxPerMillisecond)
 	return nil
 }
 func getSequenceMaxBit(idCount int64) int {
@@ -76,8 +79,12 @@ func getSequenceMaxBit(idCount int64) int {
 func (i *IdNode) NextId() (error, string) {
 	i.mutex.Lock()
 	defer i.mutex.Unlock()
-	genTime := i.genTime()
-	timestamp := genTime - i.since
+
+	timestamp := genTime() - i.since
+	if timestamp < 0 {
+		err := errors.New("since time is invalid2")
+		return err, ""
+	}
 	if timestamp < i.lastTimestamp {
 		err := errors.New("clock moved backwards")
 		return err, ""
@@ -85,7 +92,11 @@ func (i *IdNode) NextId() (error, string) {
 	if i.lastTimestamp == timestamp {
 		i.sequence = i.sequence + 1
 		if i.sequence > i.sequenceMax {
-			return errors.New("node generates too many IDS per millisecond"), ""
+			for timestamp <= i.lastTimestamp {
+				// fmt.Print("- ")
+				timestamp = genTime() - i.since
+			}
+			// fmt.Println("")
 		}
 	} else {
 		i.sequence = 1
@@ -97,8 +108,8 @@ func (i *IdNode) NextId() (error, string) {
 	return nil, fmt.Sprintf("%08s%s%0"+strconv.Itoa(i.sequenceMaxBit)+"s", numToBHex(timestamp, INT_BASE), string(CHARS[i.nodeId]), numToBHex(i.sequence, INT_BASE))
 }
 
-func (i *IdNode) genTime() int64 {
-	return time.Now().UnixNano() / int64(time.Millisecond)
+func genTime() int64 {
+	return time.Now().UnixNano() / 1000000
 }
 
 func numToBHex(num int64, n int64) string {
