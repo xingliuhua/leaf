@@ -43,7 +43,7 @@ func NewNode(nodeId int64) (error, *IdNode) {
 		mutex:          sync.Mutex{},
 		nodeId:         nodeId,
 		since:          0,
-		sequence:       1,
+		sequence:       0,
 		lastTimestamp:  -1,
 		sequenceMax:    DEFAULT_MAX_NODE_SEQUENCE,
 		sequenceMaxBit: 1,
@@ -67,12 +67,12 @@ func (i *IdNode) SetGenerateIDRate(idCountMaxPerMillisecond int64) error {
 	if idCountMaxPerMillisecond <= 0 {
 		return errors.New("sequenceMax time is invalid")
 	}
-	i.sequenceMax = idCountMaxPerMillisecond
+	i.sequenceMax = idCountMaxPerMillisecond - 1
 	i.sequenceMaxBit = getSequenceMaxBit(idCountMaxPerMillisecond)
 	return nil
 }
 func getSequenceMaxBit(idCount int64) int {
-	return len(numToBHex(idCount, INT_BASE))
+	return len(numToBHex(idCount-1, INT_BASE))
 }
 
 // NextId generates a unique string（Contains numbers and letters） of 10 length,Each node can generate 36 ids per millisecond.
@@ -96,10 +96,11 @@ func (i *IdNode) NextId() (error, string) {
 				// fmt.Print("- ")
 				timestamp = genTime() - i.since
 			}
+			i.sequence = 0
 			// fmt.Println("")
 		}
 	} else {
-		i.sequence = 1
+		i.sequence = 0
 	}
 	if timestamp >= 2.821109907456e+12 {
 		return errors.New("time to long error"), ""
