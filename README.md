@@ -25,7 +25,7 @@ default 36 ids per millisecond.
 you can customize it.
 
 ## Install
-go get github.com/xingliuhua/leaf
+go get github.com/xingliuhua/leaf/v2
 ## Usage
 ``` go
 import "github.com/xingliuhua/leaf"

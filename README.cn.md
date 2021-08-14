@@ -43,7 +43,7 @@ aaaaaaaa -  a  - a...
 * 比一般的雪花ID实现更灵活，可以指定每毫秒并发量，可以指定开始时间
 
 ## 安装
-go get github.com/xingliuhua/leaf
+go get github.com/xingliuhua/leaf/v2
 ## 使用
 ``` go
 import "github.com/xingliuhua/leaf"
