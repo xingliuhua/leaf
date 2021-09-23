@@ -28,30 +28,19 @@ you can customize it.
 go get github.com/xingliuhua/leaf/v2
 ## Usage
 ``` go
-import "github.com/xingliuhua/leaf"
+import "github.com/xingliuhua/leaf/v2"
 ```
 
 ``` go
-    err, node := leaf.NewNode(0)
-   	if err != nil {
-   		return
-   	}
-   	err = node.SetGenerateIDRate(200)
-   	if err != nil {
-   		return
-   	}
-   	startTime := time.Date(2020, 0, 0, 0, 0, 0, 0, time.UTC).UnixNano() / 1000000
-   	err = node.SetSince(startTime)
-   	if err != nil {
-   		return
-   	}
-   	for i := 0; i < 40; i++ {
-   		err, id := node.NextId()
-   		if err != nil {
-   			return
-   		}
-   		fmt.Println(id)
-   	}
+	sinceOption := leaf.NodeSince(time.Date(2020, 0, 0, 0, 0, 0, 0, time.UTC).Unix())
+	node, err := leaf.NewNode(leaf.NodeId(1), leaf.IdCountMaxPeMillisecond(50), sinceOption)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	for i := 0; i < 100; i++ {
+		fmt.Println(node.NextId())
+	}
 ```
 
 ## Maintainers

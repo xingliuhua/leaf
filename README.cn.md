@@ -46,29 +46,18 @@ aaaaaaaa -  a  - a...
 go get github.com/xingliuhua/leaf/v2
 ## 使用
 ``` go
-import "github.com/xingliuhua/leaf"
+import "github.com/xingliuhua/leaf/v2"
 ```
 
 ``` go
-    err, node := leaf.NewNode(0)
+	sinceOption := leaf.NodeSince(time.Date(2020, 0, 0, 0, 0, 0, 0, time.UTC).Unix())
+	node, err := leaf.NewNode(leaf.NodeId(1), leaf.IdCountMaxPeMillisecond(50), sinceOption)
 	if err != nil {
+		fmt.Println(err)
 		return
 	}
-	err = node.SetGenerateIDRate(200)
-	if err != nil {
-		return
-	}
-	startTime := time.Date(2020, 0, 0, 0, 0, 0, 0, time.UTC).UnixNano() / 1000000
-	err = node.SetSince(startTime)
-	if err != nil {
-		return
-	}
-	for i := 0; i < 40; i++ {
-		err, id := node.NextId()
-		if err != nil {
-			return
-		}
-		fmt.Println(id)
+	for i := 0; i < 100; i++ {
+		fmt.Println(node.NextId())
 	}
 ```
 
