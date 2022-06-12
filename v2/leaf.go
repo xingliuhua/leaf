@@ -16,14 +16,20 @@ const _INT_BASE int64 = 36
 
 const CHARS = "0123456789abcdefghijklmnopqrstuvwxyz"
 
+var NodeIdErr = errors.New("invalid node id parameter")
+var SinceTimeErr = errors.New("since time is invalid")
+var IdCountMaxPeMillisecondErr = errors.New("idCountMaxPeMillisecond should be greater than or equal to 0")
+var ClockBackErr = errors.New("clock moved backwards")
+var TimeTooLongErr = errors.New("time to long error")
+
 type IdNode struct {
-	mutex          sync.Mutex
-	nodeId         int64
-	since          int64
-	sequence       int64
-	lastTimestamp  int64
-	sequenceMax    int64
-	sequenceMaxBit int
+	mutex                  sync.Mutex
+	nodeId                 int64
+	since                  int64
+	sequence               int64
+	lastTimestampFromSince int64
+	sequenceMax            int64
+	sequenceMaxBit         int
 }
 type Config struct {
 	NodeId                  int64 // nodeId:[0,35]
@@ -56,33 +62,30 @@ func NewNode(options ...Option) (*IdNode, error) {
 		f(&config)
 	}
 
-	if config.NodeId < 0 {
-		return nil, errors.New("nodeId should be greater than or equal to 0")
-	}
-	if config.NodeId > _MAX_NODE_ID {
-		return nil, fmt.Errorf("nodeId should be less than or equal to %d", _MAX_NODE_ID)
+	if config.NodeId < 0 || config.NodeId > _MAX_NODE_ID {
+		return nil, NodeIdErr
 	}
 	if config.Since < 0 {
-		return nil, errors.New("since time is invalid")
+		return nil, SinceTimeErr
 	}
-	if config.Since > genTime() {
-		return nil, errors.New("since time is invalid")
+	if config.Since > getNowTime() {
+		return nil, SinceTimeErr
 	}
 
 	if config.IdCountMaxPeMillisecond < 0 {
-		return nil, errors.New("IdCountMaxPeMillisecond should be greater than or equal to 0")
+		return nil, IdCountMaxPeMillisecondErr
 	}
 	if config.IdCountMaxPeMillisecond == 0 {
 		config.IdCountMaxPeMillisecond = _ID_COUNT_MAX_PE_MILLISECOND
 	}
 	idNode := &IdNode{
-		mutex:          sync.Mutex{},
-		nodeId:         config.NodeId,
-		since:          config.Since,
-		sequence:       0,
-		lastTimestamp:  0,
-		sequenceMax:    config.IdCountMaxPeMillisecond - 1,
-		sequenceMaxBit: getSequenceMaxBit(config.IdCountMaxPeMillisecond),
+		mutex:                  sync.Mutex{},
+		nodeId:                 config.NodeId,
+		since:                  config.Since,
+		sequence:               0,
+		lastTimestampFromSince: 0,
+		sequenceMax:            config.IdCountMaxPeMillisecond - 1,
+		sequenceMaxBit:         getSequenceMaxBit(config.IdCountMaxPeMillisecond),
 	}
 	return idNode, nil
 }
@@ -96,20 +99,20 @@ func (idNode *IdNode) NextId() (string, error) {
 	idNode.mutex.Lock()
 	defer idNode.mutex.Unlock()
 
-	timestampFromSince := genTime() - idNode.since
+	timestampFromSince := getNowTime() - idNode.since
 
-	if timestampFromSince < idNode.lastTimestamp {
-		err := errors.New("clock moved backwards")
+	if timestampFromSince < idNode.lastTimestampFromSince {
+		err := ClockBackErr
 		return "", err
 	}
-	if idNode.lastTimestamp == timestampFromSince {
+	if idNode.lastTimestampFromSince == timestampFromSince {
 		idNode.sequence = idNode.sequence + 1
 		if idNode.sequence > idNode.sequenceMax {
-			for timestampFromSince == idNode.lastTimestamp {
-				timestampFromSince = genTime() - idNode.since
+			for timestampFromSince == idNode.lastTimestampFromSince {
+				timestampFromSince = getNowTime() - idNode.since
 			}
-			if timestampFromSince < idNode.lastTimestamp {
-				err := errors.New("clock moved backwards")
+			if timestampFromSince < idNode.lastTimestampFromSince {
+				err := ClockBackErr
 				return "", err
 			}
 			idNode.sequence = 0
@@ -118,14 +121,14 @@ func (idNode *IdNode) NextId() (string, error) {
 		idNode.sequence = 0
 	}
 	if timestampFromSince >= 2821109907456 { // 2821109907456 = 36^8
-		return "", errors.New("time to long error")
+		return "", TimeTooLongErr
 	}
-	idNode.lastTimestamp = timestampFromSince
+	idNode.lastTimestampFromSince = timestampFromSince
 	id := fmt.Sprintf("%08s%s%0"+strconv.Itoa(idNode.sequenceMaxBit)+"s", numToBHex(timestampFromSince, _INT_BASE), string(CHARS[idNode.nodeId]), numToBHex(idNode.sequence, _INT_BASE))
 	return id, nil
 }
 
-func genTime() int64 {
+func getNowTime() int64 {
 	return time.Now().UnixNano() / int64(1000000)
 }
 
